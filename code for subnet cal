@@ -1,0 +1,82 @@
+import ipaddress
+
+def subnet_calculator():
+    while True:
+        # Get user input for IP address
+        ip_address_str = input("Enter IP address: ")
+        try:
+            ip_address = ipaddress.IPv4Address(ip_address_str)
+        except ValueError:
+            print("Invalid IP address entered. Please try again.")
+            continue
+        
+        # Get user input for subnet mask
+        subnet_mask_str = input("Enter subnet mask: ")
+        try:
+            subnet_mask = ipaddress.IPv4Address(subnet_mask_str)
+            # Convert subnet mask to integer for later use
+            subnet_mask_int = int(subnet_mask)
+        except ValueError:
+            print("Invalid subnet mask entered. Please try again.")
+            continue
+        
+        # Check if subnet mask is valid
+        binary_mask = bin(subnet_mask_int)[2:].zfill(32)
+        if '01' in binary_mask:
+            print("Invalid subnet mask entered. Please try again.")
+            continue
+        
+        # Calculate network address and other subnet details
+        network = ipaddress.IPv4Network((ip_address, subnet_mask))
+        num_hosts = network.num_addresses - 2
+        broadcast_address = network.broadcast_address
+        first_address = network.network_address + 1
+        last_address = broadcast_address - 1
+        
+        # Print subnet details
+        print("\nSubnet Details:")
+        print(f"Network address: {network.network_address}")
+        print(f"Subnet mask: {network.netmask}")
+        print(f"First usable address: {first_address}")
+        print(f"Last usable address: {last_address}")
+        print(f"Broadcast address: {broadcast_address}")
+        print(f"Number of hosts: {num_hosts}")
+        
+        # Ask user if they want to create subnets using VLSM
+        create_subnets = input("\nDo you want to create subnets using VLSM? (y/n): ")
+        if create_subnets.lower() == 'y':
+            # Get user input for number of subnets
+            while True:
+                num_subnets_str = input("Enter number of subnets to create: ")
+                try:
+                    num_subnets = int(num_subnets_str)
+                    if num_subnets <= 0:
+                        raise ValueError
+                    break
+                except ValueError:
+                    print("Invalid number of subnets entered. Please enter a positive integer.")
+            
+            # Calculate subnets using VLSM
+            subnets = []
+            subnet_size = num_hosts // num_subnets
+            remainder = num_hosts % num_subnets
+            for i in range(num_subnets):
+                if i < remainder:
+                    subnets.append(subnet_size + 2)
+                else:
+                    subnets.append(subnet_size)
+            vlsm_results = vlsm(subnets, network.network_address + 1)
+            
+            # Print VLSM results
+            print("\nVLSM Results:")
+            for i, subnet in enumerate(vlsm_results):
+                print(f"Subnet {i+1}: Network address: {subnet[0]}, Subnet mask: {subnet[1]}")
+            
+        # Ask user if they want to calculate another subnet
+        another_subnet = input("\nDo you want to calculate another subnet? (y/n): ")
+        if another_subnet.lower() != 'y':
+            break
+
+def vlsm(subnets, network_address):
+    # Sort subnets by size in descending order
+    subnets = sorted(subnets, reverse
