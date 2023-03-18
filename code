@@ -1,0 +1,70 @@
+import tkinter as tk
+import ipaddress
+
+def vlsm(subnets, network_address):
+    # Sort subnets by size in descending order
+    subnets = sorted(subnets, reverse=True)
+
+    # Calculate the total number of addresses needed
+    total = sum(subnets)
+
+    # Check if the total is a power of two
+    if (total & (total - 1)) != 0:
+        raise ValueError("Total number of addresses must be a power of two")
+
+    # Calculate the number of bits needed for the network mask
+    mask_bits = total.bit_length()
+
+    # Calculate the subnet mask and network address
+    subnet_mask = (0xffffffff >> (32 - mask_bits)) << (32 - mask_bits)
+
+    # Initialize a list to store the subnets with their network address and subnet mask
+    subnet_list = []
+
+    # Loop through each subnet, calculate its network address and subnet mask, and add it to the list
+    for subnet_size in subnets:
+        subnet_mask = (0xffffffff >> (32 - subnet_size)) << (32 - subnet_size)
+        subnet = ipaddress.IPv4Network((network_address, subnet_mask))
+        subnet_list.append((subnet.network_address, subnet.netmask))
+        network_address += subnet_size
+
+    # Return the list of subnets with their network address and subnet mask
+    return subnet_list
+
+def calculate_vlsm():
+    try:
+        subnets = list(map(int, subnets_entry.get().split()))
+        network_address = ipaddress.IPv4Address(network_address_entry.get())
+        subnet_list = vlsm(subnets, network_address)
+        subnet_results.config(state=tk.NORMAL)
+        subnet_results.delete('1.0', tk.END)
+        for subnet in subnet_list:
+            subnet_results.insert(tk.END, "Network address: {}, Subnet mask: {}\n".format(subnet[0], subnet[1]))
+        subnet_results.config(state=tk.DISABLED)
+    except (ValueError, ipaddress.AddressValueError) as e:
+        error_label.config(text=str(e))
+
+# Create the main window
+root = tk.Tk()
+root.title("VLSM Calculator")
+
+# Create the widgets
+subnets_label = tk.Label(root, text="Subnets (separated by spaces):")
+subnets_entry = tk.Entry(root)
+network_address_label = tk.Label(root, text="Network Address:")
+network_address_entry = tk.Entry(root)
+calculate_button = tk.Button(root, text="Calculate", command=calculate_vlsm)
+subnet_results = tk.Text(root, height=10, width=40, state=tk.DISABLED)
+error_label = tk.Label(root, fg='red')
+
+# Add the widgets to the window
+subnets_label.grid(row=0, column=0, padx=5, pady=5)
+subnets_entry.grid(row=0, column=1, padx=5, pady=5)
+network_address_label.grid(row=1, column=0, padx=5, pady=5)
+network_address_entry.grid(row=1, column=1, padx=5, pady=5)
+calculate_button.grid(row=2, column=0, columnspan=2, padx=5, pady=5)
+subnet_results.grid(row=3, column=0, columnspan=2, padx=5, pady=5)
+error_label.grid(row=4, column=0, columnspan=2, padx=5, pady=5)
+
+# Start the main event loop
+root.mainloop()
